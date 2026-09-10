@@ -25,8 +25,17 @@ var cashewAccount = builder.Configuration["Cashew:Account"];
 var expenseRulesPath = Path.Combine(AppContext.BaseDirectory, "merchant-rules.json");
 var incomeRulesPath = Path.Combine(AppContext.BaseDirectory, "income-rules.json");
 
-var parser = new RuleBasedTransactionParser();
+var ruleBasedParser =
+    new RuleBasedTransactionParser();
 
+var fallbackParser =
+    new FallbackTransactionParser();
+
+ITransactionParser parser =
+    new HybridTransactionParser(
+        ruleBasedParser,
+        fallbackParser);
+        
 var expenseCategoryResolver =
     new CategoryResolver(expenseRulesPath);
 
