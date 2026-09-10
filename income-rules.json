@@ -1,0 +1,22 @@
+{
+  "salary": "Income",
+  "wage": "Income",
+  "paycheck": "Income",
+  "tk maxx": "Income",
+
+  "freelance": "Freelance",
+  "client": "Freelance",
+  "consulting": "Freelance",
+
+  "refund": "Refund",
+  "reimbursement": "Refund",
+
+  "cashback": "Cashback",
+
+  "interest": "Interest",
+
+  "sale": "Sales",
+  "sold": "Sales",
+
+  "other income": "Other Income"
+}

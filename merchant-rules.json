@@ -1,0 +1,29 @@
+{
+  "lidl": "Groceries",
+  "aldi": "Groceries",
+  "tesco": "Groceries",
+  "dunnes": "Groceries",
+  "supervalu": "Groceries",
+  "Dealz": "Groceries",
+
+  "luas": "Transport",
+  "dublin bus": "Transport",
+  "irish rail": "Transport",
+  "uber": "Transport",
+  "free now": "Transport",
+
+  "mcdonald": "Eating Out",
+  "burger king": "Eating Out",
+  "deliveroo": "Eating Out",
+  "just eat": "Eating Out",
+
+  "48": "Bills",
+  "chatgpt": "Subscriptions",
+  "netflix": "Subscriptions",
+  "spotify": "Subscriptions",
+
+  "rent" : "Bills & Fees",
+  "trash" : "Bills & Fees",
+  "internet" : "Bills & Fees",
+  "energy" : "Bills & Fees"
+}
