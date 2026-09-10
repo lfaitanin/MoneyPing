@@ -12,9 +12,33 @@ public sealed class ParsedTransaction
     public bool IsIncome => Amount > 0;
 }
 
-public sealed record ParseResult(bool Success, ParsedTransaction? Transaction, string? Error)
+public sealed record ParseResult(
+    bool Success,
+    IReadOnlyList<ParsedTransaction> Transactions,
+    string? Error)
 {
-    public static ParseResult Ok(ParsedTransaction transaction) => new(true, transaction, null);
-    public static ParseResult Fail(string error) => new(false, null, error);
+    public ParsedTransaction? Transaction =>
+        Transactions.FirstOrDefault();
+
+    public static ParseResult Ok(ParsedTransaction transaction) =>
+        new(
+            true,
+            [transaction],
+            null
+        );
+
+    public static ParseResult Ok(IEnumerable<ParsedTransaction> transactions) =>
+        new(
+            true,
+            transactions.ToList(),
+            null
+        );
+
+    public static ParseResult Fail(string error) =>
+        new(
+            false,
+            [],
+            error
+        );
 }
 
