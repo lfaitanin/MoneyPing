@@ -4,8 +4,7 @@ namespace ExpenseAgent.Tests;
 
 public sealed class TransactionParserTests
 {
-    private readonly TransactionParser _parser = new();
-
+    private readonly ITransactionParser _parser = new RuleBasedTransactionParser();
     [Fact]
     public void Should_Parse_Expense()
     {

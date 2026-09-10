@@ -4,7 +4,7 @@ using MoneyPing.Models;
 
 namespace MoneyPing.Services;
 
-public sealed partial class TransactionParser
+public sealed partial class RuleBasedTransactionParser : ITransactionParser
 {
     private static readonly string[] IncomeWords =
     [
