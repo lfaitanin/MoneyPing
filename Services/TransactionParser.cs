@@ -27,23 +27,14 @@ public sealed partial class TransactionParser
     {
         if (string.IsNullOrWhiteSpace(input))
             return ParseResult.Fail("Empty message.");
-            
-        var amountMatch = AmountRegex().Match(input);
-        if (!amountMatch.Success)
-            return ParseResult.Fail("Value not found Ex.: 'spent 18.50 at Lidl'.");
-        
-        var accountMatch = AccountRegex().Match(input);
-         if (!accountMatch.Success)
-            return ParseResult.Fail("Account not found: 'spent 18.50 at Lidl using AIB'.");
-
-        var rawAmount = amountMatch.Groups["amount"].Value.Replace(',', '.');
-        if (!decimal.TryParse(rawAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) || amount <= 0)
-            return ParseResult.Fail("I couldn't interpret the value.");
 
         var normalized = input.Trim().ToLowerInvariant();
 
-        var isExpense = ExpenseWords.Any(word => ContainsWord(normalized, word));
-        var isIncome = IncomeWords.Any(word => ContainsWord(normalized, word));
+        var isExpense = ExpenseWords.Any(word =>
+            ContainsWord(normalized, word));
+
+        var isIncome = IncomeWords.Any(word =>
+            ContainsWord(normalized, word));
 
         if (!isExpense && !isIncome)
         {
@@ -57,30 +48,92 @@ public sealed partial class TransactionParser
                 "I couldn't determine whether this is an expense or income.");
         }
 
+        var accountMatch = AccountRegex().Match(input);
+
+        if (!accountMatch.Success)
+        {
+            return ParseResult.Fail(
+                "Account not found. Example: 'spent 18.50 at Lidl using AIB'.");
+        }
+
+        var account = NormalizeAccount(accountMatch.Groups["account"].Value);
+        
+        var date = normalized.Contains("yesterday")
+            ? DateTime.Today.AddDays(-1)
+            : DateTime.Today;
+
+        var parts = TransactionSeparatorRegex().Split(input);
+
+        var transactions = new List<ParsedTransaction>();
+
+        foreach (var part in parts)
+        {
+            var result = ParseSingleTransaction(
+                part,
+                isIncome,
+                account,
+                date);
+
+            if (!result.Success || result.Transaction is null)
+            {
+                return ParseResult.Fail(
+                    result.Error ?? $"Could not parse transaction: {part}");
+            }
+
+            transactions.Add(result.Transaction);
+        }
+
+        return ParseResult.Ok(transactions);
+    }
+    private ParseResult ParseSingleTransaction(string input, bool isIncome, string account, DateTime date)
+    {
+        var amountMatch = AmountRegex().Match(input);
+
+        if (!amountMatch.Success)
+        {
+            return ParseResult.Fail(
+                $"Amount not found in transaction: '{input.Trim()}'.");
+        }
+
+        var rawAmount = amountMatch
+            .Groups["amount"]
+            .Value
+            .Replace(',', '.');
+
+        if (!decimal.TryParse(
+                rawAmount,
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var amount) ||
+            amount <= 0)
+        {
+            return ParseResult.Fail(
+                $"Could not parse amount in transaction: '{input.Trim()}'.");
+        }
+
         amount = isIncome
             ? Math.Abs(amount)
             : -Math.Abs(amount);
 
-        var date = normalized.Contains("ontem") || normalized.Contains("yesterday")
-            ? DateTime.Today.AddDays(-1)
-            : DateTime.Today;
-
         var title = ExtractTitle(input, amountMatch);
+
         if (string.IsNullOrWhiteSpace(title))
-            title = isIncome ? "Income" : "Expense";
-
-        var account = ExtractTitle(input, accountMatch);
-
-        return ParseResult.Ok(new ParsedTransaction
         {
-            Account = account,
-            Amount = amount,
-            Title = title,
-            Date = date,
-            Notes = input.Trim()
-        });
-    }
+            title = isIncome
+                ? "Income"
+                : "Expense";
+        }
 
+        return ParseResult.Ok(
+            new ParsedTransaction
+            {
+                Amount = amount,
+                Title = title,
+                Date = date,
+                Account = account,
+                Notes = input.Trim()
+            });
+    }
     private static string ExtractTitle(string input, Match amountMatch)
     {
         var text = input.Remove(amountMatch.Index, amountMatch.Length);
@@ -101,13 +154,23 @@ public sealed partial class TransactionParser
             .ToTitleCase(text.ToLowerInvariant());
     }
 
+    private static string NormalizeAccount(string account)
+    {
+        return account.ToLowerInvariant() switch
+        {
+            "aib" => "AIB",
+            "revolut" => "Revolut",
+            "cash" => "Cash",
+            _ => account
+        };
+    }
     private static bool ContainsWord(string text, string word) =>
         Regex.IsMatch(text, $@"(?<!\p{{L}}){Regex.Escape(word)}(?!\p{{L}})", RegexOptions.IgnoreCase);
 
     [GeneratedRegex(@"(?<!\p{L})(?:€|eur\s*)?(?<amount>\d+(?:[\.,]\d{1,2})?)(?!\d)", RegexOptions.IgnoreCase)]
     private static partial Regex AmountRegex();
     
-    [GeneratedRegex(@"\b(using|with)\s+(aib|revolut|cash)\b", RegexOptions.IgnoreCase)]
+   [GeneratedRegex( @"\b(?:using|with)\s+(?<account>aib|revolut|cash)\b",RegexOptions.IgnoreCase)]
     private static partial Regex AccountRegex();
 
     [GeneratedRegex(@"\b(spent|paid|received|salary|income|refund)\b", RegexOptions.IgnoreCase)]
@@ -124,4 +187,7 @@ public sealed partial class TransactionParser
 
     [GeneratedRegex(@"\s{2,}")]
     private static partial Regex MultiSpaceRegex();
+
+    [GeneratedRegex(@"\s+and\s+(?=(?:€|eur\s*)?\d)",RegexOptions.IgnoreCase)]
+    private static partial Regex TransactionSeparatorRegex();
 }

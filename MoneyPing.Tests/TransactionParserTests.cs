@@ -66,4 +66,38 @@ public sealed class TransactionParserTests
             DateTime.Today.AddDays(-1),
             result.Transaction!.Date);
     }
+    [Fact]
+    public void Should_Parse_Shared_Account()
+    {
+        var result = _parser.Parse(
+            "spent 25 at Lidl and 4.20 on Luas using AIB");
+
+        Assert.True(result.Success);
+
+        Assert.Equal(2, result.Transactions.Count);
+
+        Assert.Equal("AIB", result.Transactions[0].Account);
+        Assert.Equal("AIB", result.Transactions[1].Account);
+    }
+    [Fact]
+    public void Should_Parse_Multiple_Expenses_With_Shared_Account()
+    {   
+        var result = _parser.Parse(
+            "spent 25 at Lidl and 4.20 on Luas using AIB");
+
+        Assert.True(result.Success);
+
+        Assert.Equal(2, result.Transactions.Count);
+
+        var lidl = result.Transactions[0];
+        var luas = result.Transactions[1];
+
+        Assert.Equal(-25m, lidl.Amount);
+        Assert.Equal("Lidl", lidl.Title);
+        Assert.Equal("AIB", lidl.Account);
+
+        Assert.Equal(-4.20m, luas.Amount);
+        Assert.Equal("Luas", luas.Title);
+        Assert.Equal("AIB", luas.Account);
+    }
 }

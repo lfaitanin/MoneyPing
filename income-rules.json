@@ -4,19 +4,19 @@
   "paycheck": "Income",
   "tk maxx": "Income",
 
-  "freelance": "Freelance",
-  "client": "Freelance",
-  "consulting": "Freelance",
+  "freelance": "Income",
+  "client": "Income",
+  "consulting": "Income",
 
-  "refund": "Refund",
-  "reimbursement": "Refund",
+  "refund": "Income",
+  "reimbursement": "Income",
 
-  "cashback": "Cashback",
+  "cashback": "Income",
 
-  "interest": "Interest",
+  "interest": "Income",
 
-  "sale": "Sales",
-  "sold": "Sales",
+  "sale": "Income",
+  "sold": "Income",
 
-  "other income": "Other Income"
+  "other income": "Income"
 }

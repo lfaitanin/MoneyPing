@@ -4,13 +4,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
+using System.Text;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 
 var telegramToken = builder.Configuration["Telegram:BotToken"];
 
-Console.WriteLine(telegramToken);
 if (string.IsNullOrWhiteSpace(telegramToken))
 {
     Console.Error.WriteLine("Missing TELEGRAM_BOT_TOKEN environment variable.");
@@ -96,29 +96,60 @@ bot.OnMessage += async (message, _) =>
         return;
     }
 
-    var transaction = result.Transaction;
-    transaction.Category = transaction.IsIncome
-    ? incomeCategoryResolver.Resolve(transaction.Title)
-    : expenseCategoryResolver.Resolve(transaction.Title);
-    transaction.Account = string.IsNullOrWhiteSpace(cashewAccount) ? null : cashewAccount;
+    foreach (var transaction in result.Transactions)
+    {
+        var isIncome = transaction.Amount > 0;
 
-    var cashewLink = linkBuilder.Build(transaction);
-    var categoryLabel = transaction.Category ?? "Select a category in Cashew.";
-    var accountLabel = transaction.Account ?? "Select an account in Cashew.";
-    var typeLabel = transaction.IsIncome ? "Income" : "Expense";
-    var amountLabel = Math.Abs(transaction.Amount).ToString("C2", CultureInfo.GetCultureInfo("en-IE"));
+        transaction.Category = isIncome
+            ? incomeCategoryResolver.Resolve(transaction.Title)
+            : expenseCategoryResolver.Resolve(transaction.Title);
+    }
+    var sendText = new StringBuilder();
 
-    var reply =
-        $"🧾 {transaction.Title}\n" +
-        $"💶 {amountLabel} · {typeLabel}\n" +
-        $"🏷 {categoryLabel}\n" +
-        $"💰 {accountLabel}\n" +
-        $"📅 {transaction.Date:dd/MM/yyyy}";
+    sendText.AppendLine($"💸 {result.Transactions.Count} transactions found");
+    sendText.AppendLine();
 
-    var keyboard = new InlineKeyboardMarkup(
-        InlineKeyboardButton.WithUrl("✅ Add to Cashew", cashewLink));
+    var buttons = new List<InlineKeyboardButton[]>();
 
-    await bot.SendMessage(message.Chat, reply, replyMarkup: keyboard);
+    for (var i = 0; i < result.Transactions.Count; i++)
+    {
+        var transaction = result.Transactions[i];
+
+        var isIncome = transaction.Amount > 0;
+
+        var typeLabel = isIncome
+            ? "Income"
+            : "Expense";
+
+        var categoryLabel =
+            transaction.Category ?? "Category not detected.";
+
+        var accountLabel =
+            transaction.Account ?? "Account not detected.";
+
+        sendText.AppendLine($"{i + 1}️⃣ {transaction.Title}");
+        sendText.AppendLine(
+            $"💶 €{Math.Abs(transaction.Amount):0.00} · {typeLabel}");
+        sendText.AppendLine($"🏷 {categoryLabel}");
+        sendText.AppendLine($"🏦 {accountLabel}");
+        sendText.AppendLine();
+
+        var cashewUrl = linkBuilder.Build(transaction);
+
+        buttons.Add(
+        [
+            InlineKeyboardButton.WithUrl(
+                $"✅ Add {transaction.Title}",
+                cashewUrl)
+        ]);
+    }
+
+    var keyboard = new InlineKeyboardMarkup(buttons);
+
+    await bot.SendMessage(
+        message.Chat,
+        sendText.ToString(),
+        replyMarkup: keyboard);
 };
 
 Console.WriteLine($"@{me.Username} is running. Press Ctrl+C to stop.");
