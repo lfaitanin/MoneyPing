@@ -30,7 +30,6 @@ public sealed class LlmTransactionParser : ITransactionParser
                 new SystemChatMessage(
                 $"""
                 You are the transaction parser for MoneyPing.
-
                 Convert the user's message into structured financial transactions.
 
                 Rules:
@@ -93,175 +92,215 @@ public sealed class LlmTransactionParser : ITransactionParser
                         jsonSchema: BinaryData.FromBytes(
                             """
                             {
-                              "type": "object",
-                              "properties": {
+                            "type": "object",
+                            "properties": {
+                                "intent": {
+                                "type": "string",
+                                "enum": [
+                                    "transactions",
+                                    "transfer"
+                                ]
+                                },
+
                                 "transactions": {
-                                  "type": "array",
-                                  "items": {
+                                "type": "array",
+                                "items": {
                                     "type": "object",
                                     "properties": {
-                                      "type": {
+                                    "type": {
                                         "type": "string",
-                                        "enum": ["expense", "income"]
-                                      },
-                                      "amount": {
-                                        "type": "number"
-                                      },
-                                      "title": {
-                                        "type": "string"
-                                      },
-                                      "account": {
-                                        "type": "string"
-                                      },
-                                      "date": {
-                                        "type": "string"
-                                      },
-                                      "intent": {
-                                            "type": "string",
-                                            "enum": [
-                                                "transactions",
-                                                "transfer"
-                                            ]
-                                            },
-                                            "transfer": {
-                                            "anyOf": [
-                                                {
-                                                "type": "object",
-                                                "properties": {
-                                                    "amount": {
-                                                    "type": "number"
-                                                    },
-                                                    "sourceAccount": {
-                                                    "anyOf": [
-                                                        { "type": "string" },
-                                                        { "type": "null" }
-                                                    ]
-                                                    },
-                                                    "destinationAccount": {
-                                                    "anyOf": [
-                                                        { "type": "string" },
-                                                        { "type": "null" }
-                                                    ]
-                                                    },
-                                                    "date": {
-                                                    "type": "string"
-                                                    }
-                                                },
-                                                "required": [
-                                                    "amount",
-                                                    "sourceAccount",
-                                                    "destinationAccount",
-                                                    "date"
-                                                ],
-                                                "additionalProperties": false
-                                                },
-                                                {
-                                                "type": "null"
-                                                }
-                                            ]
+                                        "enum": [
+                                        "expense",
+                                        "income"
+                                        ]
                                     },
+
+                                    "amount": {
+                                        "type": "number"
+                                    },
+
+                                    "title": {
+                                        "type": "string"
+                                    },
+
+                                    "account": {
+                                        "type": "string"
+                                    },
+
+                                    "date": {
+                                        "type": "string"
+                                    },
+
                                     "recurrence": {
                                         "anyOf": [
-                                            {
+                                        {
                                             "type": "object",
                                             "properties": {
-                                                "interval": {
+                                            "interval": {
                                                 "type": "integer",
                                                 "minimum": 1
-                                                },
-                                                "unit": {
+                                            },
+
+                                            "unit": {
                                                 "type": "string",
                                                 "enum": [
-                                                    "day",
-                                                    "week",
-                                                    "month",
-                                                    "year"
+                                                "day",
+                                                "week",
+                                                "month",
+                                                "year"
                                                 ]
-                                                },
-                                                "occurrenceCount": {
+                                            },
+
+                                            "occurrenceCount": {
                                                 "anyOf": [
-                                                    {
+                                                {
                                                     "type": "integer",
                                                     "minimum": 1
-                                                    },
-                                                    {
-                                                    "type": "null"
-                                                    }
-                                                ]
                                                 },
-                                                "untilDate": {
+                                                {
+                                                    "type": "null"
+                                                }
+                                                ]
+                                            },
+
+                                            "untilDate": {
                                                 "anyOf": [
-                                                    {
+                                                {
                                                     "type": "string"
-                                                    },
-                                                    {
-                                                    "type": "null"
-                                                    }
-                                                ]
                                                 },
-                                                "duration": {
+                                                {
+                                                    "type": "null"
+                                                }
+                                                ]
+                                            },
+
+                                            "duration": {
                                                 "anyOf": [
-                                                    {
+                                                {
                                                     "type": "object",
                                                     "properties": {
-                                                        "value": {
+                                                    "value": {
                                                         "type": "integer",
                                                         "minimum": 1
-                                                        },
-                                                        "unit": {
+                                                    },
+
+                                                    "unit": {
                                                         "type": "string",
                                                         "enum": [
-                                                            "day",
-                                                            "week",
-                                                            "month",
-                                                            "year"
+                                                        "day",
+                                                        "week",
+                                                        "month",
+                                                        "year"
                                                         ]
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "value",
-                                                        "unit"
-                                                    ],
-                                                    "additionalProperties": false
-                                                    },
-                                                    {
-                                                    "type": "null"
                                                     }
-                                                ]
+                                                    },
+
+                                                    "required": [
+                                                    "value",
+                                                    "unit"
+                                                    ],
+
+                                                    "additionalProperties": false
+                                                },
+
+                                                {
+                                                    "type": "null"
                                                 }
+                                                ]
+                                            }
                                             },
+
                                             "required": [
-                                                "interval",
-                                                "unit",
-                                                "occurrenceCount",
-                                                "untilDate",
-                                                "duration"
+                                            "interval",
+                                            "unit",
+                                            "occurrenceCount",
+                                            "untilDate",
+                                            "duration"
                                             ],
+
                                             "additionalProperties": false
+                                        },
+
+                                        {
+                                            "type": "null"
+                                        }
+                                        ]
+                                    }
+                                    },
+
+                                    "required": [
+                                    "type",
+                                    "amount",
+                                    "title",
+                                    "account",
+                                    "date",
+                                    "recurrence"
+                                    ],
+
+                                    "additionalProperties": false
+                                }
+                                },
+
+                                "transfer": {
+                                "anyOf": [
+                                    {
+                                    "type": "object",
+                                    "properties": {
+                                        "amount": {
+                                        "type": "number"
+                                        },
+
+                                        "sourceAccount": {
+                                        "anyOf": [
+                                            {
+                                            "type": "string"
                                             },
                                             {
                                             "type": "null"
                                             }
                                         ]
+                                        },
+
+                                        "destinationAccount": {
+                                        "anyOf": [
+                                            {
+                                            "type": "string"
+                                            },
+                                            {
+                                            "type": "null"
+                                            }
+                                        ]
+                                        },
+
+                                        "date": {
+                                        "type": "string"
                                         }
                                     },
+
                                     "required": [
-                                      "type",
-                                      "amount",
-                                      "title",
-                                      "account",
-                                      "date",
-                                      "recurrence"
+                                        "amount",
+                                        "sourceAccount",
+                                        "destinationAccount",
+                                        "date"
                                     ],
+
                                     "additionalProperties": false
-                                  }
+                                    },
+
+                                    {
+                                    "type": "null"
+                                    }
+                                ]
                                 }
-                              },
-                                "required": [ "intent",
-                                            "transactions",
-                                            "transfer"
-                                            ],
-                                "additionalProperties": false
+                            },
+
+                            "required": [
+                                "intent",
+                                "transactions",
+                                "transfer"
+                            ],
+
+                            "additionalProperties": false
                             }
                             """u8.ToArray()),
 
@@ -276,10 +315,21 @@ public sealed class LlmTransactionParser : ITransactionParser
 
             var json = completion.Value.Content[0].Text;
 
+            Console.WriteLine("LLM JSON:");
+            Console.WriteLine(json);
             var response =
                 JsonSerializer.Deserialize<LlmTransactionResponse>(
                     json);
-            
+
+            Console.WriteLine($"Intent: {response?.Intent}");
+            Console.WriteLine($"Transfer null: {response?.Transfer is null}");
+            Console.WriteLine($"Transactions: {response?.Transactions.Count}");
+
+            if (response is null)
+            {
+                return ParseResult.Fail(
+                    "AI parser returned an empty response.");
+            }
             if (response.Intent == "transfer")
             {
                 if (response.Transfer is null)
@@ -454,6 +504,9 @@ public sealed class LlmTransactionParser : ITransactionParser
         }
         catch (Exception ex)
         {
+            Console.Error.WriteLine(
+                $"[MoneyPing] LLM parser exception: {ex}");
+
             return ParseResult.Fail(
                 $"AI parser failed: {ex.Message}");
         }

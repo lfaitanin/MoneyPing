@@ -64,7 +64,7 @@ public sealed class CashewLinkBuilder
         var json = JsonSerializer.Serialize(
             payload,
             options);
-
+            
         var encodedJson =
             Uri.EscapeDataString(json);
 
