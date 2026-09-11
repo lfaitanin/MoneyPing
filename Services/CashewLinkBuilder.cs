@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using MoneyPing.Models;
 
 namespace MoneyPing.Services;
@@ -31,4 +33,40 @@ public sealed class CashewLinkBuilder
 
         return $"{BaseUrl}?{encoded}";
     }
+        public string BuildMany(
+        IEnumerable<ParsedTransaction> transactions)
+        {
+            var payload = new
+            {
+                transactions = transactions.Select(transaction => new
+                {
+                    amount = transaction.Amount.ToString(
+                        CultureInfo.InvariantCulture),
+
+                    title = transaction.Title,
+                    notes = transaction.Notes,
+
+                    date = transaction.Date.ToString(
+                        "yyyy-MM-dd"),
+
+                    category = transaction.Category,
+                    account = transaction.Account
+                }).ToList()
+            };
+
+            var options = new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition =
+                    JsonIgnoreCondition.WhenWritingNull
+            };
+
+            var json = JsonSerializer.Serialize(
+                payload,
+                options);
+
+            var encodedJson =
+                Uri.EscapeDataString(json);
+
+            return $"{BaseUrl}?JSON={encodedJson}";
+        }
 }

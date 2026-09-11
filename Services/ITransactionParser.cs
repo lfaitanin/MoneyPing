@@ -1,8 +1,9 @@
 using MoneyPing.Models;
 
 namespace MoneyPing.Services;
-
 public interface ITransactionParser
 {
-    ParseResult Parse(string input);
+    Task<ParseResult> ParseAsync(
+        string input,
+        CancellationToken cancellationToken = default);
 }

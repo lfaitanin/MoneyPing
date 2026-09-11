@@ -15,7 +15,8 @@ public sealed class ParsedTransaction
 public sealed record ParseResult(
     bool Success,
     IReadOnlyList<ParsedTransaction> Transactions,
-    string? Error)
+    string? Error,
+    ParseFailureKind FailureKind)
 {
     public ParsedTransaction? Transaction =>
         Transactions.FirstOrDefault();
@@ -24,21 +25,29 @@ public sealed record ParseResult(
         new(
             true,
             [transaction],
-            null
-        );
+            null,
+            ParseFailureKind.None);
 
-    public static ParseResult Ok(IEnumerable<ParsedTransaction> transactions) =>
+    public static ParseResult Ok(
+        IEnumerable<ParsedTransaction> transactions) =>
         new(
             true,
             transactions.ToList(),
-            null
-        );
+            null,
+            ParseFailureKind.None);
 
     public static ParseResult Fail(string error) =>
         new(
             false,
             [],
-            error
-        );
+            error,
+            ParseFailureKind.Validation);
+
+    public static ParseResult Unsupported(string error) =>
+        new(
+            false,
+            [],
+            error,
+            ParseFailureKind.Unsupported);
 }
 

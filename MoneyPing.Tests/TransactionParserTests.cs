@@ -8,8 +8,8 @@ public sealed class TransactionParserTests
     [Fact]
     public void Should_Parse_Expense()
     {
-        var result = _parser.Parse(
-            "spent 25 at Lidl using Aib");
+        var result = _parser.ParseAsync(
+            "spent 25 at Lidl using Aib")?.Result;
 
         Assert.True(
             result.Success,
@@ -24,7 +24,7 @@ public sealed class TransactionParserTests
     [Fact]
     public void Should_Parse_Income()
     {
-        var result = _parser.Parse("received 300 from TK Maxx using AIB");
+        var result = _parser.ParseAsync("received 300 from TK Maxx using AIB")?.Result;
 
         Assert.True(
             result.Success,
@@ -38,8 +38,8 @@ public sealed class TransactionParserTests
     [Fact]
     public void Should_Reject_Message_Without_Amount()
     {
-        var result = _parser.Parse(
-            "spent money at Lidl");
+        var result = _parser.ParseAsync(
+            "spent money at Lidl")?.Result;
 
         Assert.False(result.Success);
     }
@@ -47,8 +47,8 @@ public sealed class TransactionParserTests
     [Fact]
     public void Should_Reject_Message_Without_Transaction_Type()
     {
-        var result = _parser.Parse(
-            "25 at Lidl using AIB");
+        var result = _parser.ParseAsync(
+            "25 at Lidl using AIB")?.Result;
 
         Assert.False(result.Success);
     }
@@ -56,8 +56,8 @@ public sealed class TransactionParserTests
     [Fact]
     public void Should_Parse_Yesterday()
     {
-        var result = _parser.Parse(
-            "spent 10 at Lidl yesterday using AIB");
+        var result = _parser.ParseAsync(
+            "spent 10 at Lidl yesterday using AIB")?.Result;
 
         Assert.True(result.Success);
 
@@ -68,8 +68,8 @@ public sealed class TransactionParserTests
     [Fact]
     public void Should_Parse_Shared_Account()
     {
-        var result = _parser.Parse(
-            "spent 25 at Lidl and 4.20 on Luas using AIB");
+        var result = _parser.ParseAsync(
+            "spent 25 at Lidl and 4.20 on Luas using AIB")?.Result;
 
         Assert.True(result.Success);
 
@@ -81,8 +81,8 @@ public sealed class TransactionParserTests
     [Fact]
     public void Should_Parse_Multiple_Expenses_With_Shared_Account()
     {   
-        var result = _parser.Parse(
-            "spent 25 at Lidl and 4.20 on Luas using AIB");
+        var result = _parser.ParseAsync(
+            "spent 25 at Lidl and 4.20 on Luas using AIB")?.Result;
 
         Assert.True(result.Success);
 

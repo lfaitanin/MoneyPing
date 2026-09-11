@@ -7,56 +7,122 @@ namespace MoneyPing.Tests;
 public sealed class HybridTransactionParserTests
 {
     [Fact]
-    public void Should_Use_Primary_Parser_When_It_Succeeds()
+    public async Task Should_Return_Primary_Result_When_Primary_Succeeds()
     {
-        var primary = new SuccessfulParser();
-        var fallback = new FailingParser();
+        var primaryResult = ParseResult.Ok(
+            new ParsedTransaction
+            {
+                Amount = -25m,
+                Title = "Lidl",
+                Account = "AIB",
+                Date = DateTime.Today
+            });
+
+        var primary = new FakeTransactionParser(primaryResult);
+
+        var fallback = new FakeTransactionParser(
+            ParseResult.Fail("Fallback should not be called."));
 
         var parser = new HybridTransactionParser(
             primary,
             fallback);
 
-        var result = parser.Parse("anything");
+        var result = await parser.ParseAsync(
+            "spent 25 at Lidl using AIB");
 
         Assert.True(result.Success);
+
+        Assert.True(primary.WasCalled);
+        Assert.False(fallback.WasCalled);
+
         Assert.Single(result.Transactions);
-        Assert.Equal("Primary", result.Transactions[0].Title);
+        Assert.Equal("Lidl", result.Transactions[0].Title);
     }
+
     [Fact]
-    public void Should_Use_Fallback_Parser_When_Primary_Fails()
+    public async Task Should_Use_Fallback_When_Primary_Returns_Unsupported()
     {
-        var primary = new FailingParser();
-        var fallback = new SuccessfulParser();
+        var primary = new FakeTransactionParser(
+            ParseResult.Unsupported(
+                "Message is too complex for rule-based parsing."));
+
+        var fallbackResult = ParseResult.Ok(
+            new ParsedTransaction
+            {
+                Amount = -25m,
+                Title = "Lidl",
+                Account = "AIB",
+                Date = DateTime.Today
+            });
+
+        var fallback =
+            new FakeTransactionParser(fallbackResult);
 
         var parser = new HybridTransactionParser(
             primary,
             fallback);
 
-        var result = parser.Parse("complex message");
+        var result = await parser.ParseAsync(
+            "yesterday after work I bought groceries at Lidl for 25 euros");
 
         Assert.True(result.Success);
+
+        Assert.True(primary.WasCalled);
+        Assert.True(fallback.WasCalled);
+
         Assert.Single(result.Transactions);
-        Assert.Equal("Primary", result.Transactions[0].Title);
+        Assert.Equal("Lidl", result.Transactions[0].Title);
     }
-    private sealed class SuccessfulParser : ITransactionParser
+
+    [Fact]
+    public async Task Should_Not_Use_Fallback_When_Primary_Returns_Validation_Error()
     {
-        public ParseResult Parse(string input)
-        {
-            return ParseResult.Ok(
+        var primary = new FakeTransactionParser(
+            ParseResult.Fail(
+                "Was this an expense or income?"));
+
+        var fallback = new FakeTransactionParser(
+            ParseResult.Ok(
                 new ParsedTransaction
                 {
-                    Amount = -10,
-                    Title = "Primary",
+                    Amount = -25m,
+                    Title = "Should Not Be Used",
+                    Account = "AIB",
                     Date = DateTime.Today
-                });
-        }
+                }));
+
+        var parser = new HybridTransactionParser(
+            primary,
+            fallback);
+
+        var result = await parser.ParseAsync(
+            "25 at Lidl using AIB");
+
+        Assert.False(result.Success);
+
+        Assert.True(primary.WasCalled);
+        Assert.False(fallback.WasCalled);
     }
 
-    private sealed class FailingParser : ITransactionParser
+
+    private sealed class FakeTransactionParser : ITransactionParser
     {
-        public ParseResult Parse(string input)
+        private readonly ParseResult _result;
+
+        public bool WasCalled { get; private set; }
+
+        public FakeTransactionParser(ParseResult result)
         {
-            return ParseResult.Fail("Failed");
+            _result = result;
+        }
+
+        public Task<ParseResult> ParseAsync(
+            string input,
+            CancellationToken cancellationToken = default)
+        {
+            WasCalled = true;
+
+            return Task.FromResult(_result);
         }
     }
 }

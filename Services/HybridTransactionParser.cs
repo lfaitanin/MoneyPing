@@ -15,13 +15,35 @@ public sealed class HybridTransactionParser : ITransactionParser
         _fallbackParser = fallbackParser;
     }
 
-    public ParseResult Parse(string input)
+    public async Task<ParseResult> ParseAsync(
+        string input,
+        CancellationToken cancellationToken = default)
     {
-        var primaryResult = _primaryParser.Parse(input);
+        var primaryResult = await _primaryParser.ParseAsync(
+            input,
+            cancellationToken);
 
-        if (primaryResult.Success)
+       if (primaryResult.Success)
+        {
+            Console.WriteLine(
+                "[MoneyPing] Parsed with RuleBasedTransactionParser.");
+
             return primaryResult;
+        }
 
-        return _fallbackParser.Parse(input);
+        if (primaryResult.FailureKind != ParseFailureKind.Unsupported)
+        {
+            Console.WriteLine(
+                $"[MoneyPing] Rule-based validation failed: {primaryResult.Error}");
+
+            return primaryResult;
+        }
+
+        Console.WriteLine(
+            "[MoneyPing] Rule-based parser could not safely parse the message. Falling back to LLM.");
+
+        return await _fallbackParser.ParseAsync(
+            input,
+            cancellationToken);
     }
 }

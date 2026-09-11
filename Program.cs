@@ -8,13 +8,25 @@ using System.Text;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-
 var telegramToken = builder.Configuration["Telegram:BotToken"];
 
 if (string.IsNullOrWhiteSpace(telegramToken))
 {
     Console.Error.WriteLine("Missing TELEGRAM_BOT_TOKEN environment variable.");
     return;
+}
+
+var openAiApiKey =
+    builder.Configuration["OpenAI:ApiKey"];
+
+var openAiModel =
+    builder.Configuration["OpenAI:Model"]
+    ?? "gpt-5.1";
+
+if (string.IsNullOrWhiteSpace(openAiApiKey))
+{
+    throw new InvalidOperationException(
+        "OpenAI:ApiKey is required.");
 }
 
 var allowedUserId =
@@ -28,14 +40,16 @@ var incomeRulesPath = Path.Combine(AppContext.BaseDirectory, "income-rules.json"
 var ruleBasedParser =
     new RuleBasedTransactionParser();
 
-var fallbackParser =
-    new FallbackTransactionParser();
+var llmParser =
+    new LlmTransactionParser(
+        openAiApiKey,
+        openAiModel);
 
 ITransactionParser parser =
     new HybridTransactionParser(
         ruleBasedParser,
-        fallbackParser);
-        
+        llmParser);
+
 var expenseCategoryResolver =
     new CategoryResolver(expenseRulesPath);
 
@@ -98,7 +112,8 @@ bot.OnMessage += async (message, _) =>
         return;
     }
 
-    var result = parser.Parse(text);
+    var result = await parser.ParseAsync(message.Text);
+        
     if (!result.Success || result.Transaction is null)
     {
         await bot.SendMessage(message.Chat, $"❌ {result.Error}");
@@ -144,15 +159,27 @@ bot.OnMessage += async (message, _) =>
         sendText.AppendLine();
 
         var cashewUrl = linkBuilder.Build(transaction);
+        buttons.Add(
+        [
+            InlineKeyboardButton.WithUrl(
+                    $"✅ Add {transaction.Title}",
+                    cashewUrl)
+        ]);
+    }
+
+    if (result.Transactions.Count > 1)
+    {
+        var addAllUrl =
+            linkBuilder.BuildMany(result.Transactions);
 
         buttons.Add(
         [
             InlineKeyboardButton.WithUrl(
-                $"✅ Add {transaction.Title}",
-                cashewUrl)
+                "✅ Add all to Cashew",
+                addAllUrl)
         ]);
     }
-
+    
     var keyboard = new InlineKeyboardMarkup(buttons);
 
     await bot.SendMessage(

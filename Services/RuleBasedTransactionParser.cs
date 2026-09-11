@@ -23,10 +23,10 @@ public sealed partial class RuleBasedTransactionParser : ITransactionParser
         "paid",
         "bought"
     ];
-    public ParseResult Parse(string input)
+    public Task<ParseResult> ParseAsync(string input, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(input))
-            return ParseResult.Fail("Empty message.");
+            return Task.FromResult(ParseResult.Fail("Empty message."));
 
         var normalized = input.Trim().ToLowerInvariant();
 
@@ -37,24 +37,18 @@ public sealed partial class RuleBasedTransactionParser : ITransactionParser
             ContainsWord(normalized, word));
 
         if (!isExpense && !isIncome)
-        {
-            return ParseResult.Fail(
-                "Was this an expense or income? Example: 'spent 18.50 at Lidl'.");
-        }
+            return Task.FromResult(ParseResult.Fail(
+                "Was this an expense or income? Example: 'spent 18.50 at Lidl'."));
 
         if (isExpense && isIncome)
-        {
-            return ParseResult.Fail(
-                "I couldn't determine whether this is an expense or income.");
-        }
+            return Task.FromResult(ParseResult.Fail(
+                "I couldn't determine whether this is an expense or income."));
 
         var accountMatch = AccountRegex().Match(input);
 
         if (!accountMatch.Success)
-        {
-            return ParseResult.Fail(
-                "Account not found. Example: 'spent 18.50 at Lidl using AIB'.");
-        }
+            return Task.FromResult(ParseResult.Fail(
+                "Account not found. Example: 'spent 18.50 at Lidl using AIB'."));
 
         var account = NormalizeAccount(accountMatch.Groups["account"].Value);
         
@@ -64,6 +58,11 @@ public sealed partial class RuleBasedTransactionParser : ITransactionParser
 
         var parts = TransactionSeparatorRegex().Split(input);
 
+        var amountMatches = AmountRegex().Matches(input);
+
+        if (amountMatches.Count != parts.Length) 
+            return Task.FromResult(ParseResult.Unsupported("Message structure is too complex for the rule-based parser."));
+        
         var transactions = new List<ParsedTransaction>();
 
         foreach (var part in parts)
@@ -76,25 +75,23 @@ public sealed partial class RuleBasedTransactionParser : ITransactionParser
 
             if (!result.Success || result.Transaction is null)
             {
-                return ParseResult.Fail(
-                    result.Error ?? $"Could not parse transaction: {part}");
+                return Task.FromResult(ParseResult.Fail(
+                    result.Error ?? $"Could not parse transaction: {part}"));
             }
 
             transactions.Add(result.Transaction);
         }
 
-        return ParseResult.Ok(transactions);
+        return Task.FromResult(ParseResult.Ok(transactions));
     }
     private ParseResult ParseSingleTransaction(string input, bool isIncome, string account, DateTime date)
     {
         var amountMatch = AmountRegex().Match(input);
 
         if (!amountMatch.Success)
-        {
             return ParseResult.Fail(
                 $"Amount not found in transaction: '{input.Trim()}'.");
-        }
-
+        
         var rawAmount = amountMatch
             .Groups["amount"]
             .Value
