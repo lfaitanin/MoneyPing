@@ -4,8 +4,14 @@ namespace MoneyPing.Models;
 
 public sealed class LlmTransactionResponse
 {
+    [JsonPropertyName("intent")]
+    public required string Intent { get; init; }
+
     [JsonPropertyName("transactions")]
     public List<LlmTransaction> Transactions { get; init; } = [];
+
+    [JsonPropertyName("transfer")]
+    public LlmTransfer? Transfer { get; init; }
 }
 
 public sealed class LlmTransaction
@@ -54,4 +60,18 @@ public sealed class LlmRecurrenceDuration
 
     [JsonPropertyName("unit")]
     public required string Unit { get; init; }
+}
+public sealed class LlmTransfer
+{
+    [JsonPropertyName("amount")]
+    public decimal Amount { get; init; }
+
+    [JsonPropertyName("sourceAccount")]
+    public string? SourceAccount { get; init; }
+
+    [JsonPropertyName("destinationAccount")]
+    public string? DestinationAccount { get; init; }
+
+    [JsonPropertyName("date")]
+    public required string Date { get; init; }
 }

@@ -17,16 +17,20 @@ public sealed class ParsedTransaction
 public sealed record ParseResult(
     bool Success,
     IReadOnlyList<ParsedTransaction> Transactions,
+    IReadOnlyList<TransferIntent> Transfers,
     string? Error,
     ParseFailureKind FailureKind)
 {
     public ParsedTransaction? Transaction =>
         Transactions.FirstOrDefault();
 
+    public TransferIntent? Transfer =>
+        Transfers.FirstOrDefault();
     public static ParseResult Ok(ParsedTransaction transaction) =>
         new(
             true,
             [transaction],
+            [],
             null,
             ParseFailureKind.None);
 
@@ -35,12 +39,22 @@ public sealed record ParseResult(
         new(
             true,
             transactions.ToList(),
+            [],
             null,
             ParseFailureKind.None);
+    public static ParseResult Ok(
+        TransferIntent transfer) =>
+        new(
+            true,
+            [],
+            [transfer],
+            null,
+            ParseFailureKind.None);        
 
     public static ParseResult Fail(string error) =>
         new(
             false,
+            [],
             [],
             error,
             ParseFailureKind.Validation);
@@ -48,6 +62,7 @@ public sealed record ParseResult(
     public static ParseResult Unsupported(string error) =>
         new(
             false,
+            [],
             [],
             error,
             ParseFailureKind.Unsupported);

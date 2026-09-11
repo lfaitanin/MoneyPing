@@ -66,7 +66,15 @@ public sealed partial class AdvancedIntentDetector
         "starting ",
         "until "
     ];
-
+    private static readonly string[] TransferHints =
+    [
+        "transfer ",
+        "transferred ",
+        "move money",
+        "moved money",
+        "move funds",
+        "moved funds"
+    ];
     public bool RequiresAdvancedParsing(string input)
     {
         var normalized = input.ToLowerInvariant();
@@ -74,6 +82,9 @@ public sealed partial class AdvancedIntentDetector
         if (RecurrenceHints.Any(normalized.Contains))
             return true;
 
+        if (TransferHints.Any(normalized.Contains))
+            return true;
+        
         if (DateWords.Any(normalized.Contains))
             return true;
 

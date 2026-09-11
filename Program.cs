@@ -116,13 +116,65 @@ bot.OnMessage += async (message, _) =>
         return;
     }
 
+
     var result = await parser.ParseAsync(message.Text);
-        
-    if (!result.Success || result.Transaction is null)
+
+    if (result.Transfers.Count > 0)
     {
-        await bot.SendMessage(message.Chat, $"❌ {result.Error}");
+        var transfer =
+            result.Transfers[0];
+
+        var sendTextTransfer =
+            new StringBuilder();
+
+        sendTextTransfer.AppendLine("🔄 Transfer detected");
+        sendTextTransfer.AppendLine();
+
+        sendTextTransfer.AppendLine(
+            $"💶 €{transfer.Amount:0.00}");
+
+        sendTextTransfer.AppendLine(
+            $"🏦 {transfer.SourceAccount} → {transfer.DestinationAccount}");
+
+        sendTextTransfer.AppendLine(
+            $"📅 {transfer.Date:dd MMM yyyy}");
+
+        var url =
+            linkBuilder.BuildTransfer(transfer);
+
+        var keyboardTransfer =
+            new InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton.WithUrl(
+                        "✅ Add transfer to Cashew",
+                        url)
+                ]
+            ]);
+
+        await bot.SendMessage(
+            message.Chat,
+            sendTextTransfer.ToString(),
+            replyMarkup: keyboardTransfer);
+
         return;
     }
+
+    if (result.Transactions.Count == 0)
+    {
+        await bot.SendMessage(
+            message.Chat, "❌ No transaction found.");
+
+        return;
+    }
+    
+    if (!result.Success)
+    {
+        await bot.SendMessage(message.Chat,$"❌ {result.Error}");
+        return;
+    }
+    
+    var sendText = new StringBuilder();
 
     foreach (var transaction in result.Transactions)
     {
@@ -136,7 +188,6 @@ bot.OnMessage += async (message, _) =>
 
     }
     
-    var sendText = new StringBuilder();
 
     sendText.AppendLine( result.Transactions.Count == 1 ? "💸 1 transaction found" 
                         : $"💸 {result.Transactions.Count} transactions found");

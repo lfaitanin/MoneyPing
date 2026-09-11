@@ -70,6 +70,34 @@ public sealed class CashewLinkBuilder
 
         return $"{AddTransactionUrl}?JSON={encodedJson}";
     }
+    public string BuildTransfer(TransferIntent transfer)
+    {
+        var transactions =
+            new List<ParsedTransaction>
+            {
+                new()
+                {
+                    Amount = -Math.Abs(transfer.Amount),
+                    Title =$"Transfer to {transfer.DestinationAccount}",
+                    Category = "Balance Correction",
+                    Account = transfer.SourceAccount,
+                    Date = transfer.Date,
+                    Notes = transfer.Notes
+                },
+
+                new()
+                {
+                    Amount = Math.Abs(transfer.Amount),
+                    Title =$"Transfer from {transfer.SourceAccount}",
+                    Category = "Balance Correction",
+                    Account = transfer.DestinationAccount,
+                    Date = transfer.Date,
+                    Notes = transfer.Notes
+                }
+            };
+
+        return BuildMany(transactions);
+    }
     public string BuildRoute(ParsedTransaction transaction)
     {
         return BuildUrl(

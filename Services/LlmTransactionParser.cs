@@ -60,7 +60,7 @@ public sealed class LlmTransactionParser : ITransactionParser
                 - If no ending condition is provided, occurrenceCount, untilDate and duration must all be null.
                 - Do not calculate or return every future payment date.
                 MoneyPing will calculate the schedule deterministically.
-                
+
                 Date rules:
                 - Resolve all relative dates into yyyy-MM-dd.
                 - "tomorrow" means the next calendar day.
@@ -70,6 +70,16 @@ public sealed class LlmTransactionParser : ITransactionParser
                 - "two days ago" means two calendar days before today.
                 - If no date is provided, use today's date.
                 - Do not return relative date expressions. Always return yyyy-MM-dd.
+                
+                Intent rules:
+                - intent must be either "transactions" or "transfer".
+                - Use "transfer" when the user is moving money between their own accounts.
+                - A transfer is not an expense and is not income.
+                - Never represent a transfer as an expense plus an income.
+                - For transfers, amount must always be positive.
+                - sourceAccount is where the money leaves.
+                - destinationAccount is where the money arrives.
+                - Never invent a missing source or destination account.
                 """),
                 new UserChatMessage(input)
             ];
@@ -106,7 +116,51 @@ public sealed class LlmTransactionParser : ITransactionParser
                                       "date": {
                                         "type": "string"
                                       },
-                                      "recurrence": {
+                                      "intent": {
+                                            "type": "string",
+                                            "enum": [
+                                                "transactions",
+                                                "transfer"
+                                            ]
+                                            },
+                                            "transfer": {
+                                            "anyOf": [
+                                                {
+                                                "type": "object",
+                                                "properties": {
+                                                    "amount": {
+                                                    "type": "number"
+                                                    },
+                                                    "sourceAccount": {
+                                                    "anyOf": [
+                                                        { "type": "string" },
+                                                        { "type": "null" }
+                                                    ]
+                                                    },
+                                                    "destinationAccount": {
+                                                    "anyOf": [
+                                                        { "type": "string" },
+                                                        { "type": "null" }
+                                                    ]
+                                                    },
+                                                    "date": {
+                                                    "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "amount",
+                                                    "sourceAccount",
+                                                    "destinationAccount",
+                                                    "date"
+                                                ],
+                                                "additionalProperties": false
+                                                },
+                                                {
+                                                "type": "null"
+                                                }
+                                            ]
+                                    },
+                                    "recurrence": {
                                         "anyOf": [
                                             {
                                             "type": "object",
@@ -203,8 +257,11 @@ public sealed class LlmTransactionParser : ITransactionParser
                                   }
                                 }
                               },
-                              "required": ["transactions"],
-                              "additionalProperties": false
+                                "required": [ "intent",
+                                            "transactions",
+                                            "transfer"
+                                            ],
+                                "additionalProperties": false
                             }
                             """u8.ToArray()),
 
@@ -222,6 +279,67 @@ public sealed class LlmTransactionParser : ITransactionParser
             var response =
                 JsonSerializer.Deserialize<LlmTransactionResponse>(
                     json);
+            
+            if (response.Intent == "transfer")
+            {
+                if (response.Transfer is null)
+                {
+                    return ParseResult.Fail(
+                        "AI parser identified a transfer but returned no transfer details.");
+                }
+
+                var transfer = response.Transfer;
+
+                if (transfer.Amount <= 0)
+                {
+                    return ParseResult.Fail(
+                        "Transfer amount must be greater than zero.");
+                }
+
+                if (string.IsNullOrWhiteSpace(
+                        transfer.SourceAccount))
+                {
+                    return ParseResult.Fail(
+                        "Source account is required for a transfer.");
+                }
+
+                if (string.IsNullOrWhiteSpace(
+                        transfer.DestinationAccount))
+                {
+                    return ParseResult.Fail(
+                        "Destination account is required for a transfer.");
+                }
+
+                if (transfer.SourceAccount.Equals(
+                        transfer.DestinationAccount,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return ParseResult.Fail(
+                        "Source and destination accounts cannot be the same.");
+                }
+
+                if (!DateTime.TryParseExact(
+                        transfer.Date,
+                        "yyyy-MM-dd",
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out var date))
+                {
+                    return ParseResult.Fail(
+                        "AI parser returned an invalid transfer date.");
+                }
+
+                return ParseResult.Ok(
+                    new TransferIntent
+                    {
+                        Amount = transfer.Amount,
+                        SourceAccount = transfer.SourceAccount,
+                        DestinationAccount =
+                            transfer.DestinationAccount,
+                        Date = date,
+                        Notes = input.Trim()
+                    });
+            }
 
             if (response is null ||
                 response.Transactions.Count == 0)
