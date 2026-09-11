@@ -45,10 +45,14 @@ var llmParser =
         openAiApiKey,
         openAiModel);
 
+var intentDetector =
+    new AdvancedIntentDetector();
+
 ITransactionParser parser =
     new HybridTransactionParser(
         ruleBasedParser,
-        llmParser);
+        llmParser,
+        intentDetector);
 
 var expenseCategoryResolver =
     new CategoryResolver(expenseRulesPath);
@@ -124,16 +128,22 @@ bot.OnMessage += async (message, _) =>
     {
         var isIncome = transaction.Amount > 0;
 
-        transaction.Category = isIncome
-            ? incomeCategoryResolver.Resolve(transaction.Title)
-            : expenseCategoryResolver.Resolve(transaction.Title);
+        var classification = isIncome ? incomeCategoryResolver.Resolve(transaction.Title)
+                                        : expenseCategoryResolver.Resolve(transaction.Title);
+
+        transaction.Category = classification?.Category;
+        transaction.Subcategory = classification?.Subcategory;
+
     }
+    
     var sendText = new StringBuilder();
 
-    sendText.AppendLine($"💸 {result.Transactions.Count} transactions found");
-    sendText.AppendLine();
+    sendText.AppendLine( result.Transactions.Count == 1 ? "💸 1 transaction found" 
+                        : $"💸 {result.Transactions.Count} transactions found");
+                        sendText.AppendLine();
 
     var buttons = new List<InlineKeyboardButton[]>();
+    var recurrenceScheduleGenerator = new RecurrenceScheduleGenerator();
 
     for (var i = 0; i < result.Transactions.Count; i++)
     {
@@ -148,23 +158,72 @@ bot.OnMessage += async (message, _) =>
         var categoryLabel =
             transaction.Category ?? "Category not detected.";
 
-        var accountLabel =
-            transaction.Account ?? "Account not detected.";
+        var accountLabel = string.IsNullOrWhiteSpace(transaction.Account)
+                            ? "Account not detected."
+                            : transaction.Account;
 
         sendText.AppendLine($"{i + 1}️⃣ {transaction.Title}");
-        sendText.AppendLine(
-            $"💶 €{Math.Abs(transaction.Amount):0.00} · {typeLabel}");
+        sendText.AppendLine($"💶 €{Math.Abs(transaction.Amount):0.00} · {typeLabel}");
         sendText.AppendLine($"🏷 {categoryLabel}");
+        if (!string.IsNullOrWhiteSpace(transaction.Subcategory))
+            sendText.AppendLine($"↳ {transaction.Subcategory}");
         sendText.AppendLine($"🏦 {accountLabel}");
+        sendText.AppendLine($"📅 {transaction.Date:dd MMM yyyy}");
         sendText.AppendLine();
 
-        var cashewUrl = linkBuilder.Build(transaction);
-        buttons.Add(
-        [
-            InlineKeyboardButton.WithUrl(
+        if (transaction.Recurrence is not null)
+        {
+            sendText.AppendLine(
+                    $"🔁 {transaction.Recurrence}");
+
+            if (transaction.Recurrence.IsBounded)
+            {
+                var schedule =
+                    recurrenceScheduleGenerator.Generate(
+                        transaction);
+                var firstPayment = schedule.First().Date;
+                var lastPayment = schedule.Last().Date;
+
+                var total =
+                    schedule.Sum(x => Math.Abs(x.Amount));
+
+                sendText.AppendLine($"📅 {schedule.Count} scheduled payments");
+                sendText.AppendLine($"🗓 {firstPayment:dd MMM yyyy} → {lastPayment:dd MMM yyyy}");
+                sendText.AppendLine($"💰 Total: €{total:0.00}");
+
+                var addAllUrl =
+                    linkBuilder.BuildMany(schedule);
+
+                buttons.Add(
+                [
+                    InlineKeyboardButton.WithUrl(
+                        $"✅ Add all {schedule.Count} payments",
+                        addAllUrl)
+                ]);
+            }
+            else
+            {
+                var recurringUrl =
+                    linkBuilder.BuildRoute(transaction);
+
+                buttons.Add(
+                [
+                    InlineKeyboardButton.WithUrl(
+                        $"🔁 Configure {transaction.Title}",
+                        recurringUrl)
+                ]);
+            }
+        }
+        else
+        {
+            var url = linkBuilder.Build(transaction);
+            buttons.Add(
+            [
+                InlineKeyboardButton.WithUrl(
                     $"✅ Add {transaction.Title}",
-                    cashewUrl)
-        ]);
+                    url)
+            ]);
+        }
     }
 
     if (result.Transactions.Count > 1)

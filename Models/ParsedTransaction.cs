@@ -4,12 +4,14 @@ public sealed class ParsedTransaction
 {
     
     public required decimal Amount { get; init; }
-    public required string Title { get; init; }
+    public required string Title { get; init; } = string.Empty;
     public required DateTime Date { get; init; }
     public string? Category { get; set; }
+    public string? Subcategory { get; set; }
     public string? Account { get; set; }
     public string? Notes { get; init; }
     public bool IsIncome => Amount > 0;
+    public RecurringTransactionIntent? Recurrence { get; set; }
 }
 
 public sealed record ParseResult(

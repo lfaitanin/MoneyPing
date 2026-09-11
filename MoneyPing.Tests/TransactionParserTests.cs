@@ -1,3 +1,4 @@
+using MoneyPing.Models;
 using MoneyPing.Services;
 using Xunit;
 namespace ExpenseAgent.Tests;
@@ -80,7 +81,7 @@ public sealed class TransactionParserTests
     }
     [Fact]
     public void Should_Parse_Multiple_Expenses_With_Shared_Account()
-    {   
+    {
         var result = _parser.ParseAsync(
             "spent 25 at Lidl and 4.20 on Luas using AIB")?.Result;
 
@@ -98,5 +99,29 @@ public sealed class TransactionParserTests
         Assert.Equal(-4.20m, luas.Amount);
         Assert.Equal("Luas", luas.Title);
         Assert.Equal("AIB", luas.Account);
+    }
+    [Fact]
+    public async Task Should_Parse_Monthly_Recurring_Transaction()
+    {
+        var result = await _parser.ParseAsync("paid 20 for ChatGPT using AIB every month");
+
+        Assert.True(result.Success);
+        var transaction = Assert.Single(result.Transactions);
+        Assert.NotNull(transaction.Recurrence);
+        Assert.Equal(1, transaction.Recurrence.Interval);
+
+        Assert.Equal(RecurrenceUnit.Month, transaction.Recurrence.Unit);
+    }
+    [Fact]
+    public async Task Should_Parse_Every_Four_Weeks()
+    {
+        var result = await _parser.ParseAsync("paid 650 rent using AIB every 4 weeks");
+        Assert.True(result.Success);
+
+        var transaction = Assert.Single(result.Transactions);
+
+        Assert.NotNull(transaction.Recurrence);
+        Assert.Equal(4, transaction.Recurrence.Interval);
+        Assert.Equal(RecurrenceUnit.Week, transaction.Recurrence.Unit);
     }
 }

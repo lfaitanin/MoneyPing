@@ -1,22 +1,26 @@
 {
-  "salary": "Income",
-  "wage": "Income",
-  "paycheck": "Income",
-  "tk maxx": "Income",
+  "tk maxx": {
+    "category": "Income",
+    "subcategory": "Salary"
+  },
 
-  "freelance": "Income",
-  "client": "Income",
-  "consulting": "Income",
+  "salary": {
+    "category": "Income",
+    "subcategory": "Salary"
+  },
 
-  "refund": "Income",
-  "reimbursement": "Income",
+  "freelance": {
+    "category": "Income",
+    "subcategory": "Freelance"
+  },
 
-  "cashback": "Income",
+  "refund": {
+    "category": "Income",
+    "subcategory": "Refund"
+  },
 
-  "interest": "Income",
-
-  "sale": "Income",
-  "sold": "Income",
-
-  "other income": "Income"
+  "cashback": {
+    "category": "Income",
+    "subcategory": "Cashback"
+  }
 }

@@ -7,9 +7,11 @@ namespace MoneyPing.Services;
 
 public sealed class CashewLinkBuilder
 {
-    private const string BaseUrl = "https://cashewapp.web.app/addTransaction";
+    private const string AddTransactionUrl = "https://cashewapp.web.app/addTransaction";
+    private const string AddTransactionRouteUrl = "https://cashewapp.web.app/addTransactionRoute";
 
-    public string Build(ParsedTransaction transaction)
+    
+    public string BuildUrl(ParsedTransaction transaction, string? baseUrl)
     {
         var query = new Dictionary<string, string>
         {
@@ -22,6 +24,9 @@ public sealed class CashewLinkBuilder
         if (!string.IsNullOrWhiteSpace(transaction.Category))
             query["category"] = transaction.Category;
 
+        if (!string.IsNullOrWhiteSpace(transaction.Subcategory))
+            query["subcategory"] = transaction.Subcategory;
+
         if (!string.IsNullOrWhiteSpace(transaction.Account))
             query["account"] = transaction.Account;
 
@@ -31,42 +36,51 @@ public sealed class CashewLinkBuilder
         var encoded = string.Join("&", query.Select(pair =>
             $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value)}"));
 
-        return $"{BaseUrl}?{encoded}";
+        return $"{baseUrl}?{encoded}";
     }
-        public string BuildMany(
-        IEnumerable<ParsedTransaction> transactions)
+    public string BuildMany(
+    IEnumerable<ParsedTransaction> transactions)
+    {
+        var payload = new
         {
-            var payload = new
+            transactions = transactions.Select(transaction => new
             {
-                transactions = transactions.Select(transaction => new
-                {
-                    amount = transaction.Amount.ToString(
-                        CultureInfo.InvariantCulture),
+                amount = transaction.Amount.ToString(CultureInfo.InvariantCulture),
+                title = transaction.Title,
+                notes = transaction.Notes,
+                date = transaction.Date.ToString("yyyy-MM-dd"),
+                category = transaction.Category,
+                subcategory = transaction.Subcategory,
+                account = transaction.Account
+            }).ToList()
+        };
 
-                    title = transaction.Title,
-                    notes = transaction.Notes,
+        var options = new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition =
+                JsonIgnoreCondition.WhenWritingNull
+        };
 
-                    date = transaction.Date.ToString(
-                        "yyyy-MM-dd"),
+        var json = JsonSerializer.Serialize(
+            payload,
+            options);
 
-                    category = transaction.Category,
-                    account = transaction.Account
-                }).ToList()
-            };
+        var encodedJson =
+            Uri.EscapeDataString(json);
 
-            var options = new JsonSerializerOptions
-            {
-                DefaultIgnoreCondition =
-                    JsonIgnoreCondition.WhenWritingNull
-            };
-
-            var json = JsonSerializer.Serialize(
-                payload,
-                options);
-
-            var encodedJson =
-                Uri.EscapeDataString(json);
-
-            return $"{BaseUrl}?JSON={encodedJson}";
-        }
+        return $"{AddTransactionUrl}?JSON={encodedJson}";
+    }
+    public string BuildRoute(ParsedTransaction transaction)
+    {
+        return BuildUrl(
+            transaction,
+            AddTransactionRouteUrl);
+    }
+    public string Build(
+    ParsedTransaction transaction)
+    {
+        return BuildUrl(
+        transaction,
+        AddTransactionUrl);
+    }
 }

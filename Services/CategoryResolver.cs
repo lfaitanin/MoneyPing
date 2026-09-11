@@ -1,31 +1,37 @@
 using System.Text.Json;
+using MoneyPing.Models;
 
 namespace MoneyPing.Services;
 
 public sealed class CategoryResolver
 {
-    private readonly Dictionary<string, string> _rules;
+    private readonly Dictionary<string, TransactionClassification> _rules;
 
     public CategoryResolver(string rulesPath)
     {
-        if (!File.Exists(rulesPath))
-        {
-            _rules = new(StringComparer.OrdinalIgnoreCase);
-            return;
-        }
+       var json = File.ReadAllText(rulesPath);
 
-        var json = File.ReadAllText(rulesPath);
-        _rules = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-                 ?? new Dictionary<string, string>();
+        _rules =
+            JsonSerializer.Deserialize<
+                Dictionary<string, TransactionClassification>
+            >(json)
+            ?? [];
     }
 
-    public string? Resolve(string title)
+    public TransactionClassification? Resolve(string title)
     {
-        var normalizedTitle = title.Trim().ToLowerInvariant();
+        var normalizedTitle =
+            title.Trim().ToLowerInvariant();
 
-        return _rules
-            .OrderByDescending(pair => pair.Key.Length)
-            .FirstOrDefault(pair => normalizedTitle.Contains(pair.Key.ToLowerInvariant()))
-            .Value;
+        foreach (var rule in _rules)
+        {
+            if (normalizedTitle.Contains(
+                    rule.Key.ToLowerInvariant()))
+            {
+                return rule.Value;
+            }
+        }
+
+        return null;
     }
 }

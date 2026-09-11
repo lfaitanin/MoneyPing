@@ -1,29 +1,102 @@
 {
-  "lidl": "Groceries",
-  "aldi": "Groceries",
-  "tesco": "Groceries",
-  "dunnes": "Groceries",
-  "supervalu": "Groceries",
-  "Dealz": "Groceries",
+  "lidl": {
+    "category": "Food",
+    "subcategory": "Groceries"
+  },
+  "aldi": {
+    "category": "Food",
+    "subcategory": "Groceries"
+  },
+  "tesco": {
+    "category": "Food",
+    "subcategory": "Groceries"
+  },
+  "dunnes": {
+    "category": "Food",
+    "subcategory": "Groceries"
+  },
+  "supervalu": {
+    "category": "Food",
+    "subcategory": "Groceries"
+  },
+  "dealz": {
+    "category": "Food",
+    "subcategory": "Groceries"
+  },
 
-  "luas": "Transit",
-  "dublin bus": "Transit",
-  "irish rail": "Transit",
-  "uber": "Transit",
-  "free now": "Transit",
+  "mcdonald": {
+    "category": "Food",
+    "subcategory": "Fast Food"
+  },
+  "burger king": {
+    "category": "Food",
+    "subcategory": "Fast Food"
+  },
+  "deliveroo": {
+    "category": "Food",
+    "subcategory": "Delivery"
+  },
+  "just eat": {
+    "category": "Food",
+    "subcategory": "Delivery"
+  },
 
-  "mcdonald": "Dining",
-  "burger king": "Dining",
-  "deliveroo": "Dining",
-  "just eat": "Dining",
+  "luas": {
+    "category": "Transit",
+    "subcategory": "Public Transport"
+  },
+  "dublin bus": {
+    "category": "Transit",
+    "subcategory": "Public Transport"
+  },
+  "irish rail": {
+    "category": "Transit",
+    "subcategory": "Public Transport"
+  },
+  "uber": {
+    "category": "Transit",
+    "subcategory": "Taxi & Ride Sharing"
+  },
+  "free now": {
+    "category": "Transit",
+    "subcategory": "Taxi & Ride Sharing"
+  },
 
-  "48": "Bills",
-  "chatgpt": "Subscriptions",
-  "netflix": "Subscriptions",
-  "spotify": "Subscriptions",
+  "48": {
+    "category": "Bills & Fees",
+    "subcategory": "Mobile Phone"
+  },
+  "rent": {
+    "category": "Bills & Fees",
+    "subcategory": "Rent"
+  },
+  "trash": {
+    "category": "Bills & Fees",
+    "subcategory": "Waste"
+  },
+  "internet": {
+    "category": "Bills & Fees",
+    "subcategory": "Internet"
+  },
+  "energy": {
+    "category": "Bills & Fees",
+    "subcategory": "Electricity & Gas"
+  },
 
-  "rent" : "Bills & Fees",
-  "trash" : "Bills & Fees",
-  "internet" : "Bills & Fees",
-  "energy" : "Bills & Fees"
+  "chatgpt": {
+    "category": "Subscriptions",
+    "subcategory": "AI Tools"
+  },
+  "netflix": {
+    "category": "Subscriptions",
+    "subcategory": "Streaming"
+  },
+  "youtube": {
+    "category": "Subscriptions",
+    "subcategory": "Streaming"
+  },
+  "spotify": {
+    "category": "Subscriptions",
+    "subcategory": "Music"
+  }
 }

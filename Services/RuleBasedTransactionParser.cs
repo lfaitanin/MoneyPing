@@ -23,10 +23,26 @@ public sealed partial class RuleBasedTransactionParser : ITransactionParser
         "paid",
         "bought"
     ];
+    private static readonly string[] RecurrenceHints =
+    [   
+        "every ",
+        "daily",
+        "weekly",
+        "monthly",
+        "yearly",
+        "annually",
+        "recurring",
+        "subscription",
+        "renews",
+        "renewal"
+    ];  
     public Task<ParseResult> ParseAsync(string input, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(input))
             return Task.FromResult(ParseResult.Fail("Empty message."));
+
+        if (HasRecurrenceIntent(input))
+            return Task.FromResult(ParseResult.Unsupported("Recurring transactions require advanced parsing."));
 
         var normalized = input.Trim().ToLowerInvariant();
 
@@ -57,10 +73,11 @@ public sealed partial class RuleBasedTransactionParser : ITransactionParser
             : DateTime.Today;
 
         var parts = TransactionSeparatorRegex().Split(input);
+     
+        var amountMatches =
+            AmountRegex().Matches(input);
 
-        var amountMatches = AmountRegex().Matches(input);
-
-        if (amountMatches.Count != parts.Length) 
+        if (amountMatches.Count != parts.Length)
             return Task.FromResult(ParseResult.Unsupported("Message structure is too complex for the rule-based parser."));
         
         var transactions = new List<ParsedTransaction>();
@@ -89,25 +106,19 @@ public sealed partial class RuleBasedTransactionParser : ITransactionParser
         var amountMatch = AmountRegex().Match(input);
 
         if (!amountMatch.Success)
+        {
             return ParseResult.Fail(
                 $"Amount not found in transaction: '{input.Trim()}'.");
+        }
         
         var rawAmount = amountMatch
             .Groups["amount"]
             .Value
             .Replace(',', '.');
 
-        if (!decimal.TryParse(
-                rawAmount,
-                NumberStyles.Number,
-                CultureInfo.InvariantCulture,
-                out var amount) ||
-            amount <= 0)
-        {
-            return ParseResult.Fail(
-                $"Could not parse amount in transaction: '{input.Trim()}'.");
-        }
-
+        if (!decimal.TryParse(rawAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) || amount <= 0)
+            return ParseResult.Fail($"Could not parse amount in transaction: '{input.Trim()}'.");
+            
         amount = isIncome
             ? Math.Abs(amount)
             : -Math.Abs(amount);
@@ -140,17 +151,19 @@ public sealed partial class RuleBasedTransactionParser : ITransactionParser
         text = DateWordRegex().Replace(text, " ");
         text = AccountRegex().Replace(text, " ");
         text = LeadingPrepositionRegex().Replace(text.Trim(), "");
-        text = MultiSpaceRegex()
-                .Replace(text, " ")
-                .Trim(' ', '-', ':', ',', '.');
-            
+        text = MultiSpaceRegex().Replace(text, " ").Trim(' ', '-', ':', ',', '.');
+
         if (string.IsNullOrWhiteSpace(text))
             return string.Empty;
 
         return CultureInfo.InvariantCulture.TextInfo
             .ToTitleCase(text.ToLowerInvariant());
     }
-
+    private static bool HasRecurrenceIntent(string input)
+    {
+        var normalized = input.ToLowerInvariant();
+        return RecurrenceHints.Any(normalized.Contains);
+    }
     private static string NormalizeAccount(string account)
     {
         return account.ToLowerInvariant() switch
@@ -185,6 +198,6 @@ public sealed partial class RuleBasedTransactionParser : ITransactionParser
     [GeneratedRegex(@"\s{2,}")]
     private static partial Regex MultiSpaceRegex();
 
-    [GeneratedRegex(@"\s+and\s+(?=(?:€|eur\s*)?\d)",RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\s+and\s+(?=(?:€|eur\s*)?\d)", RegexOptions.IgnoreCase)]
     private static partial Regex TransactionSeparatorRegex();
 }
